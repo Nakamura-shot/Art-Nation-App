@@ -1,0 +1,17 @@
+"use client";
+import {useState} from "react";import {useRouter} from "next/navigation";
+export default function PaintingForm({initial}:{initial?:any}){
+ const router=useRouter(),editing=!!initial;const [busy,setBusy]=useState(false),[error,setError]=useState("");
+ async function submit(e:any){e.preventDefault();setBusy(true);setError("");const f=new FormData(e.currentTarget);const body=Object.fromEntries(f.entries());(body as any).active=f.get("active")==="on";const r=await fetch(editing?`/api/admin/paintings/${initial.id}`:"/api/admin/paintings",{method:editing?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok){setBusy(false);setError(d.error||"Could not save painting.");return}const id=editing?initial.id:d.id;const cover=f.get("cover") as File;if(cover&&cover.size){const fd=new FormData();fd.append("file",cover);const ur=await fetch(`/api/admin/paintings/${id}/cover`,{method:"POST",body:fd});if(!ur.ok){setBusy(false);setError("Painting saved, but cover upload failed.");return}}router.push(`/admin/paintings/${id}/guide`);router.refresh()}
+ return <form className="library-editor-card" onSubmit={submit}>
+  <div className="library-form-head"><div><span className="eyebrow">PAINTING</span><h2>{editing?"Edit painting":"Create painting"}</h2><p>Build the reusable painting profile before adding guide steps.</p></div></div>
+  <label>Painting title<input name="title" required defaultValue={initial?.title||""} placeholder="e.g. Umbrella Lady"/></label>
+  <div className="form-grid"><label>Slug<input name="slug" defaultValue={initial?.slug||""} placeholder="auto-generated"/></label><label>Difficulty<select name="difficulty" defaultValue={initial?.difficulty||"Beginner"}><option>Beginner</option><option>Beginner–Intermediate</option><option>Intermediate</option><option>Advanced</option></select></label></div>
+  <label>Description<textarea name="description" rows={5} defaultValue={initial?.description||""} placeholder="Describe the finished painting and what the painter will learn."/></label>
+  <div className="form-grid"><label>Guide access<select name="access_mode" defaultValue={initial?.access_mode||"restricted"}><option value="restricted">Restricted — booking or activation required</option><option value="public">Public — anyone can open it</option></select></label><label>Estimated time (minutes)<input name="estimated_minutes" type="number" min="1" defaultValue={initial?.estimated_minutes||180}/></label><label>Canvas size<input name="canvas_size" defaultValue={initial?.canvas_size||"30 × 40 cm portrait"}/></label></div>
+  <label>Materials<textarea name="materials" rows={5} defaultValue={initial?.materials||"Acrylic paints\nBrushes\nCanvas\nWater cup\nPaper towel"} placeholder="One material per line"/></label>
+  <label>Cover image<input name="cover" type="file" accept="image/*"/></label>
+  <label className="location-toggle"><input name="active" type="checkbox" defaultChecked={initial?.active??true}/><span><b>Active painting guide</b><small>Active guides can be shown publicly and attached to events.</small></span></label>
+  {error&&<div className="error-box">{error}</div>}<button className="create-button" disabled={busy}>{busy?"Saving…":editing?"Save & edit guide":"Create & build guide"}</button>
+ </form>
+}

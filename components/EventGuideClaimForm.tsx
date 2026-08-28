@@ -1,0 +1,7 @@
+"use client";
+import {useState} from "react";
+export default function EventGuideClaimForm({code,eventTitle,guideTitle}:{code:string;eventTitle:string;guideTitle:string}){
+ const [busy,setBusy]=useState(false),[error,setError]=useState("");
+ async function submit(e:any){e.preventDefault();setBusy(true);setError("");const f=new FormData(e.currentTarget);const r=await fetch(`/api/event-access/${code}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(f.entries()))});const d=await r.json().catch(()=>({}));setBusy(false);if(!r.ok){setError(d.error||"Could not claim guide.");return}window.location.href=`/my-guides/${d.portalToken}`}
+ return <form className="activation-form panel event-claim-form" onSubmit={submit}><span className="eyebrow">ART NATION EVENT ACCESS</span><h2>{guideTitle}</h2><p>{eventTitle}</p><div className="event-claim-help">Use the booking reference from your confirmation and your participant number. Each paid participant can claim one guide entitlement.</div><label>Booking reference<input name="reference" required placeholder="e.g. A1B2C3D4"/></label><label>Participant number<input name="participant_no" type="number" min="1" required placeholder="1"/></label><label>Your name<input name="name" required/></label><label>Your email<input name="email" type="email" required/></label>{error&&<div className="error-box">{error}</div>}<button className="button primary-wide" disabled={busy}>{busy?"Checking booking…":"Claim my painting guide"}</button></form>
+}

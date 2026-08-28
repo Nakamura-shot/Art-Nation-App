@@ -1,0 +1,11 @@
+"use client";
+import {useState} from "react";import QRCode from "qrcode";import {useRouter} from "next/navigation";
+export default function QrActions({id,code,title,label,type,active}:{id:string;code:string;title:string;label?:string;type:"kit"|"event";active:boolean}){
+ const [open,setOpen]=useState(false),[qr,setQr]=useState(""),[busy,setBusy]=useState(false);const router=useRouter();
+ const path=type==="kit"?`/activate/${code}`:`/event-access/${code}`;
+ async function show(){const url=`${window.location.origin}${path}`;setQr(await QRCode.toDataURL(url,{width:720,margin:2}));setOpen(true)}
+ async function toggle(){setBusy(true);const endpoint=type==="kit"?`/api/admin/access-codes/${id}`:`/api/admin/event-access/${id}`;const r=await fetch(endpoint,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({active:!active})});setBusy(false);if(!r.ok){alert("Could not update QR.");return}router.refresh()}
+ function copy(){navigator.clipboard.writeText(`${window.location.origin}${path}`)}
+ return <><div className="qr-row-actions"><button onClick={show}>View QR</button><button onClick={copy}>Copy link</button><button onClick={toggle} disabled={busy}>{active?"Deactivate":"Reactivate"}</button></div>
+ {open&&<div className="qr-modal-backdrop" onClick={()=>setOpen(false)}><section className="qr-modal" onClick={e=>e.stopPropagation()}><button className="qr-modal-close" onClick={()=>setOpen(false)}>×</button><span className="eyebrow">{type==="kit"?"PAINT & SIP KIT":"WORKSHOP GUIDE"}</span><h2>{title}</h2>{label&&<p>{label}</p>}<img src={qr} alt={`QR for ${title}`}/><b className="qr-code-text">{code}</b><small>{`${window.location.origin}${path}`}</small><div className="qr-modal-actions"><a className="create-button" href={qr} download={`art-nation-${code}.png`}>Download QR</a><button className="secondary-button" onClick={()=>window.print()}>Print</button><button className="secondary-button" onClick={copy}>Copy link</button>{type==="event"&&<a className="secondary-button" href={`/admin/event-access/${id}/present`} target="_blank">Presentation mode</a>}</div>{type==="kit"&&<div className="kit-card-copy"><b>Scan to unlock your painting guide</b><span>Use your phone camera to scan this QR and follow the Art Nation step-by-step guide at home.</span></div>}</section></div>}</>
+}

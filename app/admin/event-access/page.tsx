@@ -1,0 +1,5 @@
+import {redirect} from "next/navigation";import AdminShell from "@/components/AdminShell";import EventAccessManager from "@/components/EventAccessManager";import {getAdminUser} from "@/lib/admin-auth";import {rest} from "@/lib/supabase-rest";
+export default async function Page(){if(!(await getAdminUser()))redirect("/admin/login");const now=new Date().toISOString();const [sessions,codes]=await Promise.all([
+ rest<any[]>(`event_sessions?select=id,starts_at,ends_at,capacity,events!inner(title,guide_id,guides!inner(title))&starts_at=gte.${encodeURIComponent(now)}&active=eq.true&order=starts_at.asc`,{},true),
+ rest<any[]>(`event_guide_access_codes?select=id,code,label,starts_at,expires_at,max_claims,claims,active,event_sessions!inner(events!inner(title))&order=created_at.desc&limit=100`,{},true)
+]);return <AdminShell active="Event QR"><header className="admin-topbar"><div><h1>Event QR</h1><p>Temporary guide access QR codes for confirmed workshop participants.</p></div></header><main className="admin-content"><EventAccessManager sessions={sessions} codes={codes}/></main></AdminShell>}

@@ -1,0 +1,2 @@
+import Header from "@/components/Header";import MessengerConnectForm from "@/components/MessengerConnectForm";
+export default function Page(){return <><Header/><main className="container messenger-connect-page"><section className="messenger-connect-shell"><div className="messenger-connect-art">💬</div><MessengerConnectForm/></section></main></>}
