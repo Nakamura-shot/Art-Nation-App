@@ -9,21 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "15.5.2",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "qrcode": "1.5.4",
     "imapflow": "^1.0.195",
     "mailparser": "^3.7.2",
-    "nodemailer": "^7.0.5"
+    "next": "^15.5.24",
+    "nodemailer": "^7.0.5",
+    "qrcode": "1.5.4",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.4.6",
     "@types/node": "22.10.2",
+    "@types/nodemailer": "^6.4.17",
     "@types/qrcode": "1.5.5",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
-    "typescript": "5.7.2",
-    "@types/nodemailer": "^6.4.17",
-    "@types/mailparser": "^3.4.6"
+    "typescript": "5.7.2"
   }
 }
