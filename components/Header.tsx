@@ -10,6 +10,7 @@ export default function Header() {
         <Link href="/guides">Paintings</Link>
         <Link href="/techniques">Techniques</Link>
         <Link href="/messenger">Messenger Updates</Link>
+        <Link href="/account">My Account</Link>
         <Link href="/admin/bookings">Admin</Link>
       </nav>
     </header>

@@ -9,7 +9,7 @@ export async function GET(req:Request){
   let filter="";
   if(customer)filter=`&customer_id=eq.${encodeURIComponent(customer)}`;
   else if(psid)filter=`&psid=eq.${encodeURIComponent(psid)}`;
-  const rows=await rest<any[]>(`messenger_messages?select=id,customer_id,psid,direction,message_mid,message_type,body,status,read_at,created_at${filter}&order=created_at.asc&limit=300`,{},true);
+  const rows=await rest<any[]>(`messenger_messages?select=id,customer_id,psid,direction,message_mid,message_type,body,status,read_at,created_at${filter}&message_type=neq.referral&order=created_at.asc&limit=300`,{},true);
   return NextResponse.json({messages:rows});
  }catch(e:any){return NextResponse.json({error:e.message||"Could not load Messenger messages."},{status:500})}
 }
