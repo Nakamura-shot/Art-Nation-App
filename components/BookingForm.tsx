@@ -77,9 +77,18 @@ export default function BookingForm({ event, price }: { event: ArtEvent; price: 
     setQr(await QRCode.toDataURL(window.location.href, { width: 280, margin: 1 }));
   }
 
-  async function copy(text:string){
+  async function copy(text:string,message="Link copied."){
     await navigator.clipboard.writeText(text);
-    alert("Messenger invitation copied.");
+    alert(message);
+  }
+
+  async function sendInvite(inv:Invite){
+    if(!inv.inviteUrl)return;
+    const share={title:"Art Nation booking update",text:`${inv.fullName}, open your personal Art Nation invitation to get optional updates for our booking.`,url:inv.inviteUrl};
+    if(typeof navigator.share==="function"){
+      try{await navigator.share(share);return}catch(e:any){if(e?.name==="AbortError")return;}
+    }
+    await copy(inv.inviteUrl,"Invite link copied. You can paste it into Messenger, WhatsApp or SMS.");
   }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -147,20 +156,20 @@ export default function BookingForm({ event, price }: { event: ArtEvent; price: 
       <div className="booking-confirmation-icon">✓</div>
       <span className="eyebrow">RESERVATION RECEIVED</span>
       <h2>Your booking is saved.</h2>
-      <p className="booking-confirmation-lead">We received your reservation and payment receipt. Art Nation will verify the payment before the booking is fully confirmed.</p>
+      <p className="booking-confirmation-lead"><b>Your booking was successfully received.</b> Your reservation is saved and no account or Messenger action is required to keep it.</p>
       <div className="booking-confirmation-reference"><small>Booking reference</small><strong>{completedBooking.reference}</strong></div>
-      <div className="booking-confirmation-status"><span>Payment status</span><b>Pending verification</b></div>
+      <div className="booking-confirmation-status"><span>Payment status</span><b>Receipt received · awaiting verification</b></div>
 
-      {messengerOptIn&&<div className="booking-messenger-success"><h3>Connect your Messenger</h3><p>Finish connecting your own Messenger account for booking updates.</p><MessengerConnectForm customerId={completedBooking.customerId} bookingId={completedBooking.bookingId} compact/></div>}
+      {messengerOptIn&&<div className="booking-messenger-success"><h3>Get updates in Messenger <span className="optional-note">(optional)</span></h3><p>Connect your own Messenger account for booking confirmations, payment updates and reminders.</p><MessengerConnectForm customerId={completedBooking.customerId} bookingId={completedBooking.bookingId} compact/></div>}
 
       {adultInvites.length>0&&<div className="participant-invite-box">
-        <h3>Invite your other participants to Messenger</h3>
-        <p>Each adult should connect their own Messenger account. Copy their personal invitation and send it to them.</p>
-        {adultInvites.map(inv=><div className="participant-invite-row" key={inv.participantId}><div><b>{inv.fullName}</b><small>Adult participant</small></div><button type="button" className="mini-button" onClick={()=>copy(inv.inviteUrl!)}>Copy invite</button></div>)}
+        <h3>Share updates with your group <span className="optional-note">(optional)</span></h3>
+        <p>Each adult opens their own personal invitation and connects their own Messenger account. This is optional; children do not need Messenger.</p>
+        {adultInvites.map(inv=><div className="participant-invite-row" key={inv.participantId}><div><b>{inv.fullName}</b><small>Adult participant · personal invite</small></div><div className="participant-invite-actions"><button type="button" className="mini-button" onClick={()=>sendInvite(inv)}>Send invite</button><button type="button" className="text-button" onClick={()=>copy(inv.inviteUrl!)}>Copy link</button></div></div>)}
         {completedBooking.participantInvites.some(x=>x.isChild)&&<small className="participant-child-note">Children do not need a Messenger account; booking updates stay with the booking contact.</small>}
       </div>}
 
-      {!completedBooking.loggedIn&&<div className="account-after-booking"><h3>Make your next booking faster</h3><p>Save your details and remember the people you book for.</p><Link className="create-button" href="/account">Create / log in to My Art Nation</Link></div>}
+      {!completedBooking.loggedIn&&<div className="account-after-booking"><h3>Make future bookings faster <span className="optional-note">(optional)</span></h3><p>Save your details and remember the people you book for next time.</p><Link className="secondary-button" href="/account">Create / log in to My Art Nation</Link></div>}
       <div className="booking-confirmation-note">We’ll use the email and mobile number you provided for booking updates.</div>
     </section>;
   }
