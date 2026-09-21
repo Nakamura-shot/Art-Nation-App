@@ -13,6 +13,7 @@ function money(value: number) {
 type SavedParticipant = { id:string; full_name:string; is_child:boolean; age:number|null };
 type Person = { fullName:string; isChild:boolean; age:string; savedId?:string };
 type Invite = { participantId:string; fullName:string; isChild:boolean; inviteUrl?:string|null };
+type BookingResult = {customerId:string;bookingId:string;orderId:string;paymentId:string;reference:string;participantInvites:Invite[];loggedIn:boolean;receiptPending?:boolean;receiptError?:string};
 
 function isStandardParticipantField(id:string,label:string){
   const key=`${id} ${label}`.toLowerCase();
@@ -32,14 +33,14 @@ export default function BookingForm({ event, price }: { event: ArtEvent; price: 
   const [account,setAccount]=useState<any>(null);
   const [messengerOptIn,setMessengerOptIn]=useState(true);
   const [messengerMarketing,setMessengerMarketing]=useState(false);
-  const [completedBooking,setCompletedBooking]=useState<{customerId:string;bookingId:string;reference:string;participantInvites:Invite[];loggedIn:boolean}|null>(null);
+  const [completedBooking,setCompletedBooking]=useState<BookingResult|null>(null);
   const max = Math.max(1, event.capacity - event.booked);
   const total = useMemo(() => quantity * price, [quantity, price]);
   const eventFields=event.intakeFields.filter(f=>!isStandardParticipantField(f.id,f.label));
   const savedParticipants:SavedParticipant[]=account?.savedParticipants||[];
 
   useEffect(()=>{
-    fetch("/api/account/me",{cache:"no-store"}).then(r=>r.json()).then(d=>{
+    fetch("/api/account/me",{cache:"no-store"}).then(readResponse).then(d=>{
       if(!d?.loggedIn)return;
       setAccount(d);
       setContactName(d.customer?.full_name||"");
@@ -91,6 +92,22 @@ export default function BookingForm({ event, price }: { event: ArtEvent; price: 
     await copy(inv.inviteUrl,"Invite link copied. You can paste it into Messenger, WhatsApp or SMS.");
   }
 
+  async function readResponse(response:Response){
+    const text=await response.text();
+    if(!text.trim())return {} as any;
+    try{return JSON.parse(text)}catch{return {error:text.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()||`Request failed with status ${response.status}.`}}
+  }
+
+  async function uploadReceipt(result:any,receipt:File){
+    const receiptBody=new FormData();
+    receiptBody.append("receipt",receipt);
+    receiptBody.append("paymentId",result.paymentId);
+    receiptBody.append("orderId",result.orderId);
+    const receiptResponse=await fetch("/api/payments/receipt",{method:"POST",body:receiptBody});
+    const receiptResult=await readResponse(receiptResponse);
+    if(!receiptResponse.ok)throw new Error(receiptResult.detail||receiptResult.error||`Receipt upload failed (HTTP ${receiptResponse.status}).`);
+  }
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
@@ -128,21 +145,14 @@ export default function BookingForm({ event, price }: { event: ArtEvent; price: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const result = await response.json();
+      const result = await readResponse(response);
       if (!response.ok) throw new Error(result.detail || result.error || "Booking failed.");
 
       if (!(receipt instanceof File) || receipt.size === 0) throw new Error("The booking was created, but no payment receipt was selected.");
 
-      const receiptBody = new FormData();
-      receiptBody.append("receipt", receipt);
-      receiptBody.append("paymentId", result.paymentId);
-      receiptBody.append("orderId", result.orderId);
-      const receiptResponse = await fetch("/api/payments/receipt", { method: "POST", body: receiptBody });
-      const receiptResult = await receiptResponse.json();
-      if (!receiptResponse.ok) throw new Error(`Reservation ${result.bookingId.slice(0, 8).toUpperCase()} was created, but receipt upload failed: ${receiptResult.detail || receiptResult.error || "Please try again."}`);
-
       const bookingReference=result.reference || result.bookingId.slice(0, 8).toUpperCase();
-      setCompletedBooking({customerId:result.customerId,bookingId:result.bookingId,reference:bookingReference,participantInvites:result.participantInvites||[],loggedIn:!!result.loggedIn});
+      try{await uploadReceipt(result,receipt);setCompletedBooking({customerId:result.customerId,bookingId:result.bookingId,orderId:result.orderId,paymentId:result.paymentId,reference:bookingReference,participantInvites:result.participantInvites||[],loggedIn:!!result.loggedIn});}
+      catch(receiptError){setCompletedBooking({customerId:result.customerId,bookingId:result.bookingId,orderId:result.orderId,paymentId:result.paymentId,reference:bookingReference,participantInvites:result.participantInvites||[],loggedIn:!!result.loggedIn,receiptPending:true,receiptError:receiptError instanceof Error?receiptError.message:"Receipt upload failed."});}
     } catch (err) {
       setError(err instanceof Error ? err.message : "Booking failed.");
     } finally {
@@ -158,7 +168,8 @@ export default function BookingForm({ event, price }: { event: ArtEvent; price: 
       <h2>Your booking is saved.</h2>
       <p className="booking-confirmation-lead"><b>Your booking was successfully received.</b> Your reservation is saved and no account or Messenger action is required to keep it.</p>
       <div className="booking-confirmation-reference"><small>Booking reference</small><strong>{completedBooking.reference}</strong></div>
-      <div className="booking-confirmation-status"><span>Payment status</span><b>Receipt received · awaiting verification</b></div>
+      <div className="booking-confirmation-status"><span>Payment status</span><b>{completedBooking.receiptPending?"Booking received · receipt upload needs attention":"Receipt received · awaiting verification"}</b></div>
+      {completedBooking.receiptPending&&<div className="error-box">Your booking is saved as {completedBooking.reference}. The receipt could not be confirmed: {completedBooking.receiptError} Please keep this reference and contact Art Nation rather than submitting the booking again.</div>}
 
       {messengerOptIn&&<div className="booking-messenger-success"><h3>Get updates in Messenger <span className="optional-note">(optional)</span></h3><p>Connect your own Messenger account for booking confirmations, payment updates and reminders.</p><MessengerConnectForm customerId={completedBooking.customerId} bookingId={completedBooking.bookingId} compact/></div>}
 
