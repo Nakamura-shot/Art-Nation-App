@@ -34,8 +34,9 @@ async function customerForParticipant(participantId:string,transactional:boolean
 }
 
 async function connectReferral(psid:string,ref:string){
- const rows=await rest<any[]>(`messenger_connection_tokens?select=id,customer_id,participant_id,booking_id,transactional_opt_in,marketing_opt_in,expires_at,used_at&token=eq.${encodeURIComponent(ref)}&limit=1`,{},true);
+ const rows=await rest<any[]>(`messenger_connection_tokens?select=id,customer_id,teacher_id,participant_id,booking_id,transactional_opt_in,marketing_opt_in,expires_at,used_at&token=eq.${encodeURIComponent(ref)}&limit=1`,{},true);
  const c=rows[0]; if(!c||c.used_at||new Date(c.expires_at)<new Date())return null;
+ if(c.teacher_id){await rest(`teachers?id=eq.${encodeURIComponent(c.teacher_id)}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({messenger_psid:String(psid),messenger_connected_at:new Date().toISOString(),messenger_consent_at:new Date().toISOString()})},true);await rest(`messenger_connection_tokens?id=eq.${encodeURIComponent(c.id)}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({used_at:new Date().toISOString()})},true);return {teacherId:c.teacher_id};}
  let customerId=c.customer_id as string|null;
  if(!customerId&&c.participant_id)customerId=await customerForParticipant(c.participant_id,!!c.transactional_opt_in,!!c.marketing_opt_in);
  if(!customerId)return null;
@@ -47,7 +48,7 @@ async function connectReferral(psid:string,ref:string){
  return customerId;
 }
 
-async function storeInbound(psid:string,messaging:any,customerId:string|null){
+async function storeInbound(psid:string,messaging:any,customerId:string|null,teacherId:string|null){
  if(messaging?.message?.is_echo)return;
  let body:string|null=null,type="event",mid:string|null=null;
  if(messaging?.message){
@@ -56,7 +57,7 @@ async function storeInbound(psid:string,messaging:any,customerId:string|null){
  }else if(messaging?.postback){body=messaging.postback.title||messaging.postback.payload||"[Postback]";type="postback"}
  else if(messaging?.referral){return} // Connection/referral events update CRM status but do not belong in the chat transcript.
  else return;
- const payload={customer_id:customerId,psid,direction:"inbound",message_mid:mid,message_type:type,body,raw_payload:messaging,status:"received"};
+ const payload={customer_id:customerId,teacher_id:teacherId,psid,direction:"inbound",message_mid:mid,message_type:type,body,raw_payload:messaging,status:"received"};
  try{await rest("messenger_messages",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)},true)}catch(e:any){if(!String(e?.message||e).includes("duplicate"))throw e}
 }
 
@@ -71,7 +72,7 @@ export async function POST(req:Request){
   const body=JSON.parse(raw);
   for(const entry of body.entry||[])for(const messaging of entry.messaging||[]){
    const psid=messaging?.sender?.id;if(!psid)continue;const ref=referralToken(messaging);let customerId:string|null=null;
-   if(ref)customerId=await connectReferral(String(psid),String(ref));if(!customerId)customerId=await customerForPsid(String(psid));await storeInbound(String(psid),messaging,customerId);
+   let teacherId:string|null=null;if(ref){const connected:any=await connectReferral(String(psid),String(ref));if(connected?.teacherId)teacherId=connected.teacherId;else customerId=connected;}if(!customerId)customerId=await customerForPsid(String(psid));await storeInbound(String(psid),messaging,customerId,teacherId);
   }
   return NextResponse.json({ok:true});
  }catch(e:any){console.error("META_WEBHOOK_ERROR",e);return NextResponse.json({ok:true})}
