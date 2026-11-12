@@ -5,7 +5,7 @@ import AdminLogout from "./AdminLogout";
 
 const nav = [
   { section: "", items: [["▦","Dashboard","/admin"]] },
-  { section: "EVENTS", items: [["▣","Events","/admin/events"],["▤","Create event","/admin/events/new"],["⌖","Locations","/admin/locations"],["▧","Painting Library","/admin/paintings"],["⌁","Techniques","/admin/techniques"],["⌗","Guide Access","/admin/access-codes"],["▦","Event QR","/admin/event-access"]] },
+  { section: "EVENTS", items: [["▣","Events","/admin/events"],["▤","Create event","/admin/events/new"],["⌖","Locations","/admin/locations"],["◈","Services","/admin/services"],["▧","Artwork","/admin/artworks"],["♟","Teachers","/admin/teachers"],["⌁","Techniques","/admin/techniques"],["⌗","Guide Access","/admin/access-codes"],["▦","Event QR","/admin/event-access"]] },
   { section: "BOOKINGS", items: [["♧","Bookings","/admin/bookings"],["◎","Customers","/admin/customers"],["💬","Messenger","/admin/messenger"],["＠","Email","/admin/email"],["▤","Payments","#"],["▥","Reports","#"]] },
   { section: "SETTINGS", items: [["◇","Coupons","#"],["♙","Users","#"],["⚙","Settings","#"]] },
 ];

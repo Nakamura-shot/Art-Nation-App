@@ -20,12 +20,12 @@ export async function POST(req:Request){
   const existing=await rest<any[]>(`events?select=id&slug=eq.${encodeURIComponent(slug)}`,{},true);
   if(existing.length)slug=`${slugBase}-${Date.now().toString().slice(-6)}`;
   const ev=await rest<any[]>(`events`,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({
-    title:b.title,slug,description:sanitizeRichHtml(b.description||""),event_type_id:b.event_type_id,guide_id:b.guide_id||null
+    title:b.title,slug,description:sanitizeRichHtml(b.description||""),event_type_id:b.event_type_id,guide_id:b.guide_id||null,artwork_id:b.artwork_id||null
   })},true);
   const event=ev[0];
   const starts=`${b.date}T${b.start_time}:00+08:00`, ends=`${b.date}T${b.end_time}:00+08:00`;
   const sessionRows=await rest<any[]>(`event_sessions`,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({
-    event_id:event.id,location_id:b.location_id,starts_at:starts,ends_at:ends,capacity:b.capacity,
+    event_id:event.id,location_id:b.location_id,service_id:b.service_id||null,artwork_id:b.artwork_id||null,starts_at:starts,ends_at:ends,capacity:b.capacity,
     regular_price:b.regular_price,early_bird_price:b.early_bird_price,
     early_bird_until:b.early_bird_until?`${b.early_bird_until}:00+08:00`:null,active:true
   })},true);
