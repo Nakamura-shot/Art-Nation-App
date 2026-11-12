@@ -21,7 +21,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
   await rest(`events?id=eq.${eventId}`,{
    method:"PATCH",headers:{Prefer:"return=minimal"},
    body:JSON.stringify({
-    title:b.title,description:sanitizeRichHtml(b.description||""),event_type_id:b.event_type_id,guide_id:b.guide_id||null,
+    title:b.title,description:sanitizeRichHtml(b.description||""),event_type_id:b.event_type_id,guide_id:b.guide_id||null,artwork_id:b.artwork_id||null,
     ...(b.remove_cover?{cover_image_path:null}:{})
    })
   },true);
@@ -30,7 +30,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
   await rest(`event_sessions?id=eq.${id}`,{
    method:"PATCH",headers:{Prefer:"return=minimal"},
    body:JSON.stringify({
-    location_id:b.location_id,starts_at:starts,ends_at:ends,capacity:b.capacity,
+    location_id:b.location_id,service_id:b.service_id||null,artwork_id:b.artwork_id||null,starts_at:starts,ends_at:ends,capacity:b.capacity,
     regular_price:b.regular_price,early_bird_price:b.early_bird_price,
     early_bird_until:b.early_bird_until?`${b.early_bird_until}:00+08:00`:null
    })
